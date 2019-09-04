@@ -1,0 +1,108 @@
+- name: Select nova database
+  shell: mysql -u{{root_db_user}} -p{{root_db_password}} -e "select * from information_schema.SCHEMATA where schema_name='{{item}}';"|grep -w {{item}}
+  with_items:
+    - "{{nova_db_name}}"
+    - "{{nova_api_db_name}}"
+    - "{{nova_cell0_db_name}}"
+    - "{{placement_db_name}}"
+  ignore_errors: yes
+  register: info
+  run_once: true
+
+- debug: var=info
+
+- name: Create the {{cinder_db_name}} database
+  shell: mysql -u{{root_db_user}} -p{{root_db_password}} -e "CREATE DATABASE {{item}};"
+  with_items:
+    - "{{nova_db_name}}"
+    - "{{nova_api_db_name}}"
+    - "{{nova_cell0_db_name}}"
+    - "{{placement_db_name}}"
+  ignore_errors: yes
+  when: info.rc != 0
+  run_once: true
+
+- name: Grant proper access to the nova database
+  shell: mysql -u{{root_db_user}} -p{{root_db_password}} -e "GRANT ALL PRIVILEGES ON {{item[0]}}.* TO '{{nova_db_user}}'@'{{item[1]}}' IDENTIFIED BY '{{nova_db_password}}';"
+  with_nested:
+    - ["{{nova_db_name}}","{{nova_api_db_name}}","{{nova_cell0_db_name}}"]
+    - [localhost,"%"]
+  run_once: true
+
+- name: Grant proper access to the placement database
+  shell: mysql -u{{root_db_user}} -p{{root_db_password}} -e "GRANT ALL PRIVILEGES ON {{placement_db_name}}.* TO '{{placement_db_user}}'@'{{item}}' IDENTIFIED BY '{{placement_db_password}}';"
+  with_items:
+    - localhost
+    - "%"
+  run_once: true
+
+- name: Check {{cinder_name}} user
+  shell: source /root/admin-openrc && openstack user show {{cinder_name}}
+  ignore_errors: yes
+  register: user_check
+  run_once: true
+  
+- name: Create {{cinder_name}} user
+  shell: source /root/admin-openrc && openstack user create --domain default --password {{cinder_name}} {{cinder_password}}
+  when: user_check.rc != 0 
+  run_once: true
+
+- name: Add the admin role to the {{cinder_name}} user and service project
+  shell: source /root/admin-openrc && openstack role add --project service --user {{cinder_name}} admin
+  run_once: true
+
+- name: Check service entity volumev2
+  shell: source /root/admin-openrc && openstack service show volumev2
+  ignore_errors: yes
+  register: service_check_v2
+  run_once: true
+
+- name: Create the glance service entity volumev2
+  shell: source /root/admin-openrc && openstack service create --name cinderv2 --description "OpenStack Block Storage" volumev2
+  when: service_check_v2.rc != 0
+  run_once: true
+
+- name: Check service entity volumev3
+  shell: source /root/admin-openrc && openstack service show volumev3
+  ignore_errors: yes
+  register: service_check_v3
+  run_once: true
+
+- name: Create the glance service entity volumev3
+  shell: source /root/admin-openrc && openstack service create --name cinderv3 --description "OpenStack Block Storage" volumev3
+  when: service_check_v3.rc != 0
+  run_once: true
+
+- name: Check the Block Storage service API endpoints cinderv2
+  shell: source /root/admin-openrc && openstack endpoint list|grep -w cinderv2
+  ignore_errors: yes
+  register: endpoint_check_v2
+  run_once: true
+
+- name: Create the Block Storage service API endpoints cinderv2
+  shell: source /root/admin-openrc && openstack endpoint create --region {{region_name}} volumev2 {{item}} http://{{mgnt_vip}}:8776/v3/%\(project_id\)s
+  with_items:
+    - public
+    - internal
+    - admin
+  when: endpoint_check_v2.rc != 0
+  run_once: true
+
+- name: Check the Block Storage service API endpoints cinderv3
+  shell: source /root/admin-openrc && openstack endpoint list|grep -w cinderv3
+  ignore_errors: yes
+  register: endpoint_check_v3
+  run_once: true
+
+- name: Create the Block Storage service API endpoints cinderv3
+  shell: source /root/admin-openrc && openstack endpoint create --region {{region_name}} volumev3 {{item}} http://{{mgnt_vip}}:8776/v3/%\(project_id\)s
+  with_items:
+    - public
+    - internal
+    - admin
+  when: endpoint_check_v3.rc != 0
+  run_once: true
+
+- name: Populate the Block Storage database
+  shell: su -s /bin/sh -c "cinder-manage db sync" cinder
+  run_once: true

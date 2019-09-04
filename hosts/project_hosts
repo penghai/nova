@@ -1,0 +1,9 @@
+[control_nova_nodes]
+172.16.1.11 ansible_ssh_host=172.16.1.11 ansible_ssh_user=root ansible_ssh_pass=centos
+172.16.1.12 ansible_ssh_host=172.16.1.12 ansible_ssh_user=root ansible_ssh_pass=centos
+172.16.1.13 ansible_ssh_host=172.16.1.13 ansible_ssh_user=root ansible_ssh_pass=centos
+
+[compute_nova_nodes]
+172.16.1.11 ansible_ssh_host=172.16.1.11 ansible_ssh_user=root ansible_ssh_pass=centos
+172.16.1.12 ansible_ssh_host=172.16.1.12 ansible_ssh_user=root ansible_ssh_pass=centos
+172.16.1.13 ansible_ssh_host=172.16.1.13 ansible_ssh_user=root ansible_ssh_pass=centos

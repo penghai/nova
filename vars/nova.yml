@@ -1,0 +1,27 @@
+
+root_db_user: root
+root_db_password: root
+
+nova_db_name: nova
+nova_api_db_name: nova_api
+nova_cell0_db_name: nova_cell0
+nova_db_user: nova
+nova_db_password: nova
+
+placement_db_name: placement
+placement_db_user: placement
+placement_db_password: placement
+
+mgnt_vip: 172.16.1.10
+mgnt_passwd: admin
+region_name: RegionOne
+memcached_servers: 172.16.1.11,172.16.1.12,172.16.1.13
+
+nova_name: nova
+nova_password: nova
+
+placement_name: placement
+placement_password: placement
+
+rabbitmq_user: openstack
+rabbitmq_password: openstack
