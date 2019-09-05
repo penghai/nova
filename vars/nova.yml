@@ -25,3 +25,6 @@ placement_password: placement
 
 rabbitmq_user: openstack
 rabbitmq_password: openstack
+
+#Describes the virtualization type(qemu,kvm)
+virt_type: qemu
