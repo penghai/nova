@@ -16,23 +16,3 @@
     owner: root
     group: nova
     mode: "0640"
-
-- name:
-  shell: ls /root/{{item}}
-  with_items:
-    - 1.txt
-    - 2.txt
-    - 3.txt
-    - 6.txt
-  run_once: true
-  ignore_errors: yes
-  register: info
-
-- debug: var=info.results
-  run_once: true
-
-- name:
-  shell: echo "{{item[0]}}&{{item[1].rc}}" >> /root/5.txt
-  with_together:
-    - [a,b]
-    - "{{info.results}}"

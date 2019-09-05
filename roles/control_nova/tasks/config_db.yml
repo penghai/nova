@@ -1,4 +1,4 @@
-- name: Select nova database
+- name: Select nova all and placement database
   shell: mysql -u{{root_db_user}} -p{{root_db_password}} -e "select * from information_schema.SCHEMATA where schema_name='{{item}}';"|grep -w {{item}}
   with_items:
     - "{{nova_db_name}}"
@@ -9,17 +9,12 @@
   register: info
   run_once: true
 
-- debug: var=info
-
-- name: Create the {{cinder_db_name}} database
-  shell: mysql -u{{root_db_user}} -p{{root_db_password}} -e "CREATE DATABASE {{item}};"
-  with_items:
-    - "{{nova_db_name}}"
-    - "{{nova_api_db_name}}"
-    - "{{nova_cell0_db_name}}"
-    - "{{placement_db_name}}"
-  ignore_errors: yes
-  when: info.rc != 0
+- name: Create nova all and placement database
+  shell: mysql -u{{root_db_user}} -p{{root_db_password}} -e "CREATE DATABASE {{item[0]}};"
+  with_together:
+    - ["{{nova_db_name}}","{{nova_api_db_name}}","{{nova_cell0_db_name}}","{{placement_db_name}}"]
+    - "{{info.results}}"
+  when: item[1].rc != 0
   run_once: true
 
 - name: Grant proper access to the nova database
@@ -36,73 +31,82 @@
     - "%"
   run_once: true
 
-- name: Check {{cinder_name}} user
-  shell: source /root/admin-openrc && openstack user show {{cinder_name}}
+- name: Check nova and placement user
+  shell: source /root/admin-openrc && openstack user show {{item}}
+  with_items:
+    - "{{nova_name}}"
+    - "{{placement_name}}"
   ignore_errors: yes
   register: user_check
   run_once: true
   
-- name: Create {{cinder_name}} user
-  shell: source /root/admin-openrc && openstack user create --domain default --password {{cinder_name}} {{cinder_password}}
-  when: user_check.rc != 0 
+- name: Create nova and placement user
+  shell: source /root/admin-openrc && openstack user create --domain default --password {{item[0].user}} {{item[0].password}}
+  with_together:
+    - [{user: "{{nova_name}}",password: "{{nova_password}}"},{user: "{{placement_name}}",password: "{{placement_password}}"}]
+    - "{{user_check.results}}"
+  when: item[1].rc != 0
   run_once: true
 
-- name: Add the admin role to the {{cinder_name}} user and service project
-  shell: source /root/admin-openrc && openstack role add --project service --user {{cinder_name}} admin
+- name: Add the admin role to the nova and placement user and service project
+  shell: source /root/admin-openrc && openstack role add --project service --user {{item}} admin
+  with_items:
+    - "{{nova_name}}"
+    - "{{placement_name}}"
   run_once: true
 
-- name: Check service entity volumev2
-  shell: source /root/admin-openrc && openstack service show volumev2
+- name: Check nova service entity
+  shell: source /root/admin-openrc && openstack service show nova
   ignore_errors: yes
-  register: service_check_v2
+  register: service_check_nova
   run_once: true
 
-- name: Create the glance service entity volumev2
-  shell: source /root/admin-openrc && openstack service create --name cinderv2 --description "OpenStack Block Storage" volumev2
-  when: service_check_v2.rc != 0
+- name: Create the nova service entity
+  shell: source /root/admin-openrc && openstack service create --name nova --description "OpenStack Compute" compute
+  when: service_check_nova.rc != 0
   run_once: true
 
-- name: Check service entity volumev3
-  shell: source /root/admin-openrc && openstack service show volumev3
+- name: Check Placement API service entity
+  shell: source /root/admin-openrc && openstack service show placement
   ignore_errors: yes
-  register: service_check_v3
+  register: service_check_placement
   run_once: true
 
-- name: Create the glance service entity volumev3
-  shell: source /root/admin-openrc && openstack service create --name cinderv3 --description "OpenStack Block Storage" volumev3
-  when: service_check_v3.rc != 0
+- name: Create the Placement API entry in the service catalog
+  shell: source /root/admin-openrc && openstack service create --name placement --description "Placement API" placement
+  when: service_check_placement.rc != 0
   run_once: true
 
-- name: Check the Block Storage service API endpoints cinderv2
-  shell: source /root/admin-openrc && openstack endpoint list|grep -w cinderv2
+- name: Check the Compute API service endpoints
+  shell: source /root/admin-openrc && openstack endpoint list|grep -w nova
   ignore_errors: yes
-  register: endpoint_check_v2
+  register: endpoint_check_nova
   run_once: true
 
-- name: Create the Block Storage service API endpoints cinderv2
-  shell: source /root/admin-openrc && openstack endpoint create --region {{region_name}} volumev2 {{item}} http://{{mgnt_vip}}:8776/v3/%\(project_id\)s
+- name: Create the Compute API service endpoints
+  shell: source /root/admin-openrc && openstack endpoint create --region {{region_name}} compute {{item}} http://{{mgnt_vip}}:8774/v2.1
   with_items:
     - public
     - internal
     - admin
-  when: endpoint_check_v2.rc != 0
+  when: endpoint_check_nova.rc != 0
   run_once: true
 
-- name: Check the Block Storage service API endpoints cinderv3
-  shell: source /root/admin-openrc && openstack endpoint list|grep -w cinderv3
+- name: Check the Placement API service endpoints
+  shell: source /root/admin-openrc && openstack endpoint list|grep -w placement
   ignore_errors: yes
-  register: endpoint_check_v3
+  register: endpoint_check_placement
   run_once: true
 
-- name: Create the Block Storage service API endpoints cinderv3
-  shell: source /root/admin-openrc && openstack endpoint create --region {{region_name}} volumev3 {{item}} http://{{mgnt_vip}}:8776/v3/%\(project_id\)s
+- name: Create the Placement API service endpoints
+  shell: source /root/admin-openrc && openstack endpoint create --region {{region_name}} placement {{item}} http://{{mgnt_vip}}:8778
   with_items:
     - public
     - internal
     - admin
-  when: endpoint_check_v3.rc != 0
+  when: endpoint_check_placement.rc != 0
   run_once: true
 
-- name: Populate the Block Storage database
-  shell: su -s /bin/sh -c "cinder-manage db sync" cinder
-  run_once: true
+#- name: Populate the nova-api and placement databases 
+#  shell: su -s /bin/sh -c "nova-manage api_db sync" nova
+#  run_once: true

@@ -3,6 +3,6 @@
 
 - include: install.yml
 
-#- include: config_db.yml
+- include: config_db.yml
 
 #- include: execute_start.yml
