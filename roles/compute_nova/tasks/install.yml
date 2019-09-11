@@ -1,0 +1,12 @@
+- name: Install the packages
+  yum:
+    name: openstack-nova-compute
+    state: present
+
+- name: config nova.conf
+  template:
+    src: nova.conf
+    dest: /etc/nova/nova.conf
+    owner: root
+    group: nova
+    mode: "0640"

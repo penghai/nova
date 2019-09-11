@@ -1,0 +1,5 @@
+- hosts: compute_nova_nodes
+  vars_files:
+    - "vars/nova.yml"
+  roles:
+    - role: compute_nova
