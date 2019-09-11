@@ -1,0 +1,11 @@
+- name: Start the Compute services and configure them to start when the system boots
+  service:
+    name: "{{item}}"
+    state: restarted
+    enabled: yes
+  with_items:
+    - openstack-nova-api.service
+    - openstack-nova-consoleauth
+    - openstack-nova-scheduler.service
+    - openstack-nova-conductor.service
+    - openstack-nova-novncproxy.service

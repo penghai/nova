@@ -107,6 +107,25 @@
   when: endpoint_check_placement.rc != 0
   run_once: true
 
-#- name: Populate the nova-api and placement databases 
-#  shell: su -s /bin/sh -c "nova-manage api_db sync" nova
-#  run_once: true
+- name: Populate the nova-api and placement databases 
+  shell: su -s /bin/sh -c "nova-manage api_db sync" nova
+  run_once: true
+
+- name: Register the cell0 database
+  shell: su -s /bin/sh -c "nova-manage cell_v2 map_cell0" nova
+  run_once: true
+  
+- name: check nova cell0 and cell1 are registered correctly
+  shell: su -s /bin/sh -c "nova-manage cell_v2 list_cells" nova|grep cell1
+  ignore_errors: yes
+  register: check_cell1
+  run_once: true
+  
+- name: Create the cell1 cell
+  shell: su -s /bin/sh -c "nova-manage cell_v2 create_cell --name=cell1 --verbose" nova
+  run_once: true
+  when: check_cell1.rc != 0
+  
+- name: Populate the nova database
+  shell: su -s /bin/sh -c "nova-manage db sync" nova
+  run_once: true

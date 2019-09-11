@@ -1,4 +1,3 @@
-
 root_db_user: root
 root_db_password: root
 
@@ -12,10 +11,10 @@ placement_db_name: placement
 placement_db_user: placement
 placement_db_password: placement
 
-mgnt_vip: 172.16.1.10
+mgnt_vip: 192.168.99.220
 mgnt_passwd: admin
 region_name: RegionOne
-memcached_servers: 172.16.1.11,172.16.1.12,172.16.1.13
+memcached_servers: 192.168.99.221,192.168.99.222,192.168.99.223
 
 nova_name: nova
 nova_password: nova
@@ -28,3 +27,9 @@ rabbitmq_password: openstack
 
 #Describes the virtualization type(qemu,kvm)
 virt_type: qemu
+
+reserved_memory_mb: 4096
+reserved_cpus: 2
+cpu_allocation_ratio: 4.0
+
+secret_uuid: 8f05bc1d-326f-4d2e-ad87-ca2efeee3ac2

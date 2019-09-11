@@ -10,10 +10,24 @@
       - genisoimage
     state: present
 
-- name: config nova
+- name: config nova.conf
   template:
     src: nova.conf
     dest: /etc/nova/nova.conf
     owner: root
     group: nova
     mode: "0640"
+
+- name: config nova-placement-api.conf
+  template:
+    src: 00-nova-placement-api.conf
+    dest: /etc/httpd/conf.d/00-nova-placement-api.conf
+    owner: root
+    group: root
+    mode: "0640"
+
+- name: restart httpd
+  service:
+    name: httpd
+    state: restarted
+    enabled: yes
