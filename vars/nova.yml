@@ -33,3 +33,8 @@ reserved_cpus: 2
 cpu_allocation_ratio: 4.0
 
 secret_uuid: 8f05bc1d-326f-4d2e-ad87-ca2efeee3ac2
+
+metadata_proxy_shared_secret: aa947319e6e3
+
+neutron_name: neutron
+neutron_password: neutron
