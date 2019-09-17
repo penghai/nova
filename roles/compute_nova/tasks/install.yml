@@ -5,7 +5,7 @@
 
 - name: config nova.conf
   template:
-    src: nova.conf
+    src: config/nova.conf
     dest: /etc/nova/nova.conf
     owner: root
     group: nova
